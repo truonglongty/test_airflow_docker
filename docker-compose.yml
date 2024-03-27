@@ -1,45 +1,54 @@
-version: '3.8'
-
+version: "2.1"
 services:
-  db:
-    image: postgres
+  postgres:
+    container_name: postgres_container
+    image: postgres:latest
     environment:
-      POSTGRES_DB: mydatabase
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+      PGDATA: /data/postgres-data
+    volumes:
+      - postgres-data:/data/postgres
     ports:
       - "5432:5432"
+    restart: unless-stopped
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # entrypoint: /bin/bash -c "airflow db upgrade && airflow scheduler"
+    command: scheduler
+    restart: on-failure
+    depends_on:
+      - postgres
+    env_file:
+      - .env
+    ports:
+      - "8794:8793"
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - ./dags:/opt/airflow/dags
+      - ./airflow-logs:/opt/airflow/logs
+      - ./scripts:/opt/airflow/scripts
 
-  airflow:
-      build:
-        context: .
-        dockerfile: Dockerfile
-      environment:
-        - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-        - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://myuser:mypassword@postgres:5432/mydatabase
-        - AIRFLOW__CORE__LOAD_EXAMPLES='False'
-        - _PIP_ADDITIONAL_REQUIREMENTS=apache-airflow-providers-postgres
-        - AIRFLOW_UID='50000'
-        - AIRFLOW__API__AUTH_BACKEND=airflow.api.auth.backend.basic_auth
-        # Admin user creation environment variables
-        - AIRFLOW_USER_ADMIN_USERNAME=admin
-        - AIRFLOW_USER_ADMIN_PASSWORD=admin_password
-        - AIRFLOW_USER_ADMIN_FIRSTNAME=Admin
-        - AIRFLOW_USER_ADMIN_LASTNAME=User
-        - AIRFLOW_USER_ADMIN_ROLE=Admin
-        - AIRFLOW_USER_ADMIN_EMAIL=admin@example.com
-      ports:
-        - "8080:8080"
-      volumes:
-        - airflow_dags:/usr/local/airflow/dags
-        - airflow_logs:/usr/local/airflow/logs
-      depends_on:
-        - db
-      
-
+  webserver:
+    hostname: webserver
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: ./scripts/airflow-entrypoint.sh
+    command: webserver
+    restart: always
+    depends_on:
+      - postgres
+    env_file:
+      - .env
+    # volumes:
+    #   - ./dags:/opt/airflow/dags
+    #   - ./airflow-logs:/opt/airflow/logs
+    #   - ./scripts:/opt/airflow/scripts
+    ports:
+      - "8080:8080"
 volumes:
-  db_data:
-  airflow_dags:
-  airflow_logs:
+  postgres-data:

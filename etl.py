@@ -1,6 +1,6 @@
 import csv
 import os
-from python_scripts.connect_db import insert_data
+from config.connect_db import insert_data
 
 def read_csv_file(file_path):
     if not os.path.exists(file_path):

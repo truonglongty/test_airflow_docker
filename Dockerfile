@@ -1,17 +1,26 @@
-# Use the official Apache Airflow image as the base image
-FROM apache/airflow:latest
+FROM apache/airflow:latest-python3.8
 
-# Install any additional dependencies required for your DAG
-# For example, if your DAG requires psycopg2 to interact with PostgreSQL
-RUN pip install psycopg2-binary
+USER root
 
-# Set the working directory to the Airflow DAGs folder
-WORKDIR /usr/local/airflow/dags
+ENV AIRFLOW_HOME=/opt/airflow
 
-# Copy your DAG file into the container
-COPY dags/tips_dag.py .
+# Copy your project files
+COPY . ${AIRFLOW_HOME}
 
-# Switch back to the airflow user
+# Install dos2unix and convert all .sh files to Unix line endings
+RUN apt-get update && apt-get install -y dos2unix && \
+    find ${AIRFLOW_HOME} -type f -name "*.sh" -exec dos2unix {} \;
 
-# Define the command to execute when the container starts
-CMD ["airflow", "webserver"]
+# Change ownership to the airflow user
+RUN chown -R airflow: ${AIRFLOW_HOME}
+
+USER airflow
+
+# Install any required Python packages
+RUN pip install --upgrade pip && \
+    if [ -s ${AIRFLOW_HOME}/requirements.txt ]; then pip install --trusted-host pypi.org --trusted-host files.pythonhosted.org -r ${AIRFLOW_HOME}/requirements.txt; fi
+
+# Set PYTHONPATH to include the dags directory
+ENV PYTHONPATH="${PYTHONPATH}:${AIRFLOW_HOME}/dags"
+
+USER ${AIRFLOW_UID}

@@ -10,10 +10,11 @@ import psycopg2
 # postgres_port = os.environ.get('postgres_port')
 
 postgres_host = 'localhost'
-postgres_database = 'mydatabase'
-postgres_user = 'myuser'
-postgres_password = 'mypassword'
+postgres_database = 'postgres'
+postgres_user = 'postgres'
+postgres_password = 'postgres'
 postgres_port = 5432
+
 
 try:
     conn = psycopg2.connect(
@@ -66,3 +67,4 @@ def insert_data(id, total_bill, tip, sex, smoker, day, time, size):
 
 
 # insert_data(3, 100, 2.8, 'male', 'no', 'sun', 'dinner', 5)
+# create_table()
